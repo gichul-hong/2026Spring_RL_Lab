@@ -91,7 +91,7 @@ python train.py --algo vi --map_size 6  --save_name test
 # rendering
 python render.py --policy policy_vi_test.pkl --map_size 6
 ```
-
+ 
 After training, the visualization would be saved in `/output/{args.algo}_{args.save_name}` as like the following example:
 
 ![ex](assets/example_result_imgs/iteration_10.png)
