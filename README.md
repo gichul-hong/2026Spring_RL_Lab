@@ -13,7 +13,8 @@ Download slides from here: [Google Drive Link](https://drive.google.com/drive/fo
 git clone https://github.com/SNU-IntelligentMotionLab/2026Spring_RL_Lab.git
 
 # create and activate a virtual environment
-python3 -m venv lab_env
+python3 -m venv lab_env # or
+python -m venv lab_env
 # Windows
 .\lab_env\Scripts\activate 
 # Linux/Mac
