@@ -8,13 +8,4 @@ lab_env/
 lab_env.backup-*/
 money.py
 **/outputs/**/*.png
-Lab2_ModelFree/outputs/q_learning_None/iteration_99.png
-Lab2_ModelFree/outputs/q_learning_None/iteration_199.png
-Lab2_ModelFree/outputs/q_learning_None/iteration_299.png
-Lab2_ModelFree/outputs/q_learning_None/iteration_399.png
-Lab2_ModelFree/outputs/q_learning_None/iteration_499.png
-Lab2_ModelFree/outputs/q_learning_None/iteration_599.png
-Lab2_ModelFree/outputs/q_learning_None/iteration_699.png
-Lab2_ModelFree/outputs/q_learning_None/iteration_799.png
-Lab2_ModelFree/outputs/q_learning_None/iteration_899.png
-Lab2_ModelFree/outputs/q_learning_None/iteration_999.png
+
