@@ -1,14 +1,17 @@
 import os
+from collections import deque, namedtuple
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from collections import deque, namedtuple
 from torch.utils.tensorboard import SummaryWriter
-from algos.utils import *
+
+from algos.utils import compute_value_grid, log_map, plot_discrete_policy, plot_value_heatmap
 from env.gridworld_c1 import GridWorldEnv_c1
 
 Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state', 'done'))
+
 
 class QNetwork(nn.Module):
     def __init__(self, state_dim=2, action_dim=8, hidden_dim=256):
@@ -23,6 +26,7 @@ class QNetwork(nn.Module):
 
     def forward(self, x):
         return self.net(x)
+
 
 class ReplayBuffer:
     def __init__(self, capacity=10000):
@@ -52,10 +56,14 @@ class ReplayBuffer:
         return len(self.buffer)
 
 
-
-class DQNTrainer():
+class DQNTrainer:
     def __init__(self, args):
         self.args = args
+        self.set_seeds()
+
+    def set_seeds(self):
+        torch.manual_seed(self.args.seed)
+        np.random.seed(self.args.seed)
 
     def initialize(self):
         if not os.path.exists(self.args.logdir):
@@ -63,7 +71,7 @@ class DQNTrainer():
 
         self.writer = SummaryWriter(log_dir=os.path.join(self.args.logdir, self.args.algo, self.args.save_name))
         config_path = os.path.join('configs', f'{self.args.map}.yaml')
-        self.env = GridWorldEnv_c1(config_path)
+        self.env = GridWorldEnv_c1(config_path, step_size_m=self.args.step_size)
         self.agent = DQNAgent(self.env)
 
     def save(self):
@@ -74,13 +82,13 @@ class DQNTrainer():
     def train(self):
         map_img, H, W = log_map(self.writer, self.env)
 
-        for ep in range(1, self.args.episodes+1):
+        for ep in range(1, self.args.episodes + 1):
             # reset
             state = self.env.reset()
             total_R = 0.0
 
             # ε (epsilon value)
-            if hasattr(self.agent,'epsilon'):
+            if hasattr(self.agent, 'epsilon'):
                 self.writer.add_scalar('Epsilon', self.agent.epsilon, ep)
 
             # episode rollout
@@ -89,30 +97,34 @@ class DQNTrainer():
                 next_s, r, done, _ = self.env.step(action)
                 total_R += r
                 # get loss and update
-                loss = self.agent.learn(state, action, r, next_s, done)
+                loss = self.agent.learn(state, action, r, next_s, done=done)
                 if loss is not None:
                     self.writer.add_scalar('Loss', loss, ep)
                 # move to next action
                 next_a = self.agent.select_action(next_s)
                 state, action = next_s, next_a
-                if self.args.render: self.env.render(tick=5000)
-                if done: break
+                if self.args.render:
+                    self.env.render(tick=5000)
+                if done:
+                    break
 
             # periodic visualization
-            if ep % self.args.heatmap_interval==0:
+            if ep % self.args.heatmap_interval == 0:
                 values, xs, ys, qvals = compute_value_grid(
                     self.env, self.agent.qnet, self.args.resolution, device=self.agent.device)
                 plot_value_heatmap(self.writer, values, xs, ys, ep)
                 plot_discrete_policy(self.writer, self.env, qvals, xs, ys, map_img, H, W, ep)
 
+            self.writer.add_scalar('Reward', total_R, ep)
+
             if ep % 100 == 0:
-                disp = f", Epsilon: {self.agent.epsilon:.3f}" if hasattr(self.agent,'epsilon') else ''
-                print(f"[DQN] Episode: {ep}, Reward: {total_R:.2f}{disp}")    
+                disp = f", Epsilon: {self.agent.epsilon:.3f}" if hasattr(self.agent, 'epsilon') else ''
+                print(f"[DQN] Episode: {ep}, Reward: {total_R:.2f}{disp}")
 
 
 class DQNAgent:
     """
-    Original DQN agent with state/reward normalization, MSE loss, and per-step epsilon decay.
+    DQN agent with state normalization, MSE loss, and per-step epsilon decay.
     """
     def __init__(
         self,
@@ -135,7 +147,7 @@ class DQNAgent:
 
         # normalization scales
         self.state_scale = np.array([env.height, env.width], dtype=np.float32)
-        self.reward_scale = 100.0
+        self.reward_scale = 1.0
 
         # epsilon-greedy
         self.epsilon = epsilon_start
@@ -178,7 +190,7 @@ class DQNAgent:
         # current Q
         q_values = self.qnet(states).gather(1, actions)
 
-        # original DQN target
+        # DQN target
         with torch.no_grad():
             q_next = self.target_net(next_states).max(1)[0].unsqueeze(1)
             q_target = rewards + self.gamma * q_next * (1 - dones)

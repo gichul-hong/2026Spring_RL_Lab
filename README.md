@@ -39,3 +39,13 @@ pip install -r requirements.txt
 ---
 
 For each lab session, do `cd Lab[num]_[theme]` (e.g., `cd Lab1_DP`) and refer to README for instructions.
+
+Current labs:
+
+- `Lab1_DP`: Dynamic Programming
+- `Lab2_ModelFree`: Monte Carlo, SARSA, and Q-Learning
+- `Lab3_DeepValueRL`: Deep SARSA and DQN
+- `Lab4_PG`: REINFORCE
+
+TensorBoard is used in the deep RL labs for reward/loss visualization and is
+included in `requirements.txt`.

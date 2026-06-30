@@ -193,4 +193,3 @@ class GridWorldEnv_c1:
 
     def close(self):
         pygame.quit()
-

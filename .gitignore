@@ -3,6 +3,10 @@
 __pycache__/
 *.pyc
 *.pkl
+*.pth
 lab_env/
 .tools/
 lab_env.backup-*/
+runs/
+Lab*/runs/
+Lab*/checkpoints/*.pth
