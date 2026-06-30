@@ -1,8 +1,20 @@
-python train.py --algo sarsa --episodes 500 --map_size 15 --map HW1_1.json 
-python render.py --policy policy_sarsa_None.pkl --map HW1_1.json 
+﻿# HW1 - Train & Test Commands
 
-python train.py --algo sarsa --episodes 500 --map_size 15 --map HW1_2.json 
-python render.py --policy policy_sarsa_None.pkl --map HW1_2.json 
+# === SARSA ===
+# 학습
+python train.py --algo sarsa --map HW1_1.json
+python train.py --algo sarsa --map HW1_2.json
+
+# 테스트 (렌더링)
+python render.py --policy policy_sarsa_None.pkl --map HW1_1.json
+python render.py --policy policy_sarsa_None.pkl --map HW1_2.json
 
 
-python train.py --algo sarsa --map HW1_2.json 
+# === Q-Learning ===
+# 학습
+python train.py --algo q_learning --map HW1_1.json
+python train.py --algo q_learning --map HW1_2.json
+
+# 테스트 (렌더링)
+python render.py --policy policy_q_learning_None.pkl --map HW1_1.json
+python render.py --policy policy_q_learning_None.pkl --map HW1_2.json
