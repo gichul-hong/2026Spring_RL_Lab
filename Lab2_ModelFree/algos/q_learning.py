@@ -13,6 +13,8 @@ def q_learning(env, save_name, episodes=1000, alpha=0.1, gamma=0.99, epsilon=1.0
     reward_history = []
     success_rate_history = []
     success_count = 0
+    # eval.py 실행시 명시적으로 넘겨주지 않으면 eval에서의 default value인 0.1로 설정됨
+    alpha = 0.3
     max_steps = 100
 
     # epsilon decay settings
