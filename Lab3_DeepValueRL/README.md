@@ -78,14 +78,14 @@ This will render the agent's behavior following the trained policy in the GridWo
 #### Deep SARSA
 ```bash
 # train
-python train.py --algo deepsarsa --map map2 --save_name example
+python train.py --algo deepsarsa
 # test
-python test.py --algo deepsarsa --map map2 --save_name example
+python test.py --algo deepsarsa
 ```
 #### DQN
 ```bash
 # train
-python train.py --algo dqn --map map2 --save_name example
+python train.py --algo dqn
 # test
-python test.py --algo dqn --map map2 --save_name example
+python test.py --algo dqn
 ```

@@ -19,7 +19,7 @@ class GridWorldEnv_c1:
         headless: bool = False
     ):
         # ---- Load map config ----
-        with open(config_path, 'r') as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             cfg = yaml.safe_load(f)
         self.width = cfg['width']
         self.height = cfg['height']
