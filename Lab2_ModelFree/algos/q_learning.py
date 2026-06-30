@@ -8,17 +8,17 @@ from tqdm import tqdm
 from algos.utils import plot_value_and_policy
 
 def q_learning(env, save_name, episodes=1000, alpha=0.1, gamma=0.99, epsilon=1.0, render=False, log_interval=100):
-    Q = defaultdict(lambda: {a: 1.0 for a in Action})  # Optimistic initialization
+    Q = defaultdict(lambda: {a: 0.3 for a in Action})
     
     reward_history = []
     success_rate_history = []
     success_count = 0
-    max_steps = 500
+    max_steps = 100
 
     # epsilon decay settings
     initial_epsilon = 1.0
     min_epsilon = 0.01
-    decay_rate = 0.994
+    decay_rate = 0.99
 
     for episode in tqdm(range(episodes), desc="Training Q-Learning"):
         # epsilon decay (initially, high epsilon to encourage exploration)
@@ -38,10 +38,7 @@ def q_learning(env, save_name, episodes=1000, alpha=0.1, gamma=0.99, epsilon=1.0
             if random.random() < epsilon:
                 action = random.choice(list(Action))
             else:
-                q_values = Q[state]
-                max_q = max(q_values.values())
-                best_actions = [a for a, q in q_values.items() if q == max_q]
-                action = random.choice(best_actions)
+                action = max(Q[state], key=Q[state].get)
 
             next_state, reward, done = env.step(action.value)
             next_state = tuple(next_state)
