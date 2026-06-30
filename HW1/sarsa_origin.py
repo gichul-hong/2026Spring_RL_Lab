@@ -8,20 +8,8 @@ import matplotlib.pyplot as plt
 
 
 def sarsa(env, save_name, episodes=1000, alpha=0.1, gamma=0.99, epsilon=1.0, render=False, log_interval=100):
-    def get_expected_value(Q, state, epsilon):
-        actions = Q[state]
-        best_action = max(actions, key=actions.get)
-        expected_val = 0.0
-        num_actions = len(Action)
-        for a in Action:
-            prob = (1.0 - epsilon + epsilon / num_actions) if a == best_action else (epsilon / num_actions)
-            expected_val += prob * actions[a]
-        return expected_val
-
-    # Initialize Q-value table
+    # Initialize Q-value table: set Q values to 0 for all state-action pairs
     Q = defaultdict(lambda: {a: 0.0 for a in Action})
-    replay_buffer = []         # Replay buffer for model-free experience replay
-    replay_batch_size = 50     # Batch size for experience replay
 
     all_rewards = []
     success_count = 0
@@ -64,29 +52,12 @@ def sarsa(env, save_name, episodes=1000, alpha=0.1, gamma=0.99, epsilon=1.0, ren
             else:
                 next_action = max(Q[next_state], key=Q[next_state].get)
 
-            # Expected SARSA update for actual step
-            if done:
-                Q[state][action] += alpha * (reward - Q[state][action])
-            else:
-                expected_next = get_expected_value(Q, next_state, epsilon)
-                Q[state][action] += alpha * (reward + gamma * expected_next - Q[state][action])
-
-            # Store experienced transition in buffer
-            replay_buffer.append((state, action, reward, next_state, done))
+            # SARSA update
+            td_target = reward + gamma * Q[next_state][next_action]
+            Q[state][action] += alpha * (td_target - Q[state][action])
 
             state, action = next_state, next_action
             steps += 1
-
-            # Experience Replay using Expected SARSA update
-            if len(replay_buffer) > 0:
-                batch_size = min(len(replay_buffer), replay_batch_size)
-                batch = random.sample(replay_buffer, batch_size)
-                for s_b, a_b, r_b, s_n_b, d_b in batch:
-                    if d_b:
-                        Q[s_b][a_b] += alpha * (r_b - Q[s_b][a_b])
-                    else:
-                        expected_next_b = get_expected_value(Q, s_n_b, epsilon)
-                        Q[s_b][a_b] += alpha * (r_b + gamma * expected_next_b - Q[s_b][a_b])
 
         all_rewards.append(total_reward)
         if reward == 100:  # When goal is reached
@@ -105,14 +76,7 @@ def sarsa(env, save_name, episodes=1000, alpha=0.1, gamma=0.99, epsilon=1.0, ren
             print(f"[Episode {episode+1}] Avg Reward: {avg_reward:.2f}, Success Rate: {success_rate:.1f}%")
             success_count = 0
 
-    # Return final policy (Full Policy Filling to prevent None action crashes in eval.py)
-    policy = {}
-    for y in range(env.height):
-        for x in range(env.width):
-            state = (y, x)
-            if state in Q:
-                policy[state] = max(Q[state], key=Q[state].get)
-            else:
-                policy[state] = random.choice([Action.DOWN, Action.RIGHT])
+    # Return final policy
+    policy = {state: max(actions, key=actions.get) for state, actions in Q.items()}
 
     return Q, policy

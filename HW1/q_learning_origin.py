@@ -9,13 +9,11 @@ from algos.utils import plot_value_and_policy
 
 def q_learning(env, save_name, episodes=1000, alpha=0.1, gamma=0.99, epsilon=1.0, render=False, log_interval=100):
     Q = defaultdict(lambda: {a: 0.0 for a in Action})
-    replay_buffer = []         # Replay buffer for model-free experience replay
-    replay_batch_size = 50     # Batch size for experience replay
     
     reward_history = []
     success_rate_history = []
     success_count = 0
-    max_steps = 100
+    max_steps = 500
 
     # epsilon decay settings
     initial_epsilon = 1.0
@@ -52,26 +50,12 @@ def q_learning(env, save_name, episodes=1000, alpha=0.1, gamma=0.99, epsilon=1.0
                 max_next = max(Q[next_state].values())
                 Q[state][action] += alpha * (reward + gamma * max_next - Q[state][action])
 
-            # Store experience in replay buffer
-            replay_buffer.append((state, action, reward, next_state, done))
- 
             state = next_state
             episode_reward += reward
             if reward == 100:
                 success_count += 1
- 
+
             steps += 1
- 
-            # Experience Replay
-            if len(replay_buffer) > 0:
-                batch_size = min(len(replay_buffer), replay_batch_size)
-                batch = random.sample(replay_buffer, batch_size)
-                for s_b, a_b, r_b, s_n_b, d_b in batch:
-                    if d_b and r_b == 100:
-                        Q[s_b][a_b] += alpha * (r_b - Q[s_b][a_b])
-                    else:
-                        max_next_b = max(Q[s_n_b].values())
-                        Q[s_b][a_b] += alpha * (r_b + gamma * max_next_b - Q[s_b][a_b])
 
         reward_history.append(episode_reward)
         output_folder = f"./outputs/q_learning_{save_name}"
@@ -86,15 +70,7 @@ def q_learning(env, save_name, episodes=1000, alpha=0.1, gamma=0.99, epsilon=1.0
             print(f"[Ep {episode+1}] Avg Reward: {avg_reward:.2f}, Successes: {success_rate}")
             success_count = 0
 
-    # Return final policy (Full Policy Filling to prevent None action crashes in eval.py)
-    policy = {}
-    for y in range(env.height):
-        for x in range(env.width):
-            state = (y, x)
-            if state in Q:
-                policy[state] = max(Q[state], key=Q[state].get)
-            else:
-                policy[state] = random.choice([Action.DOWN, Action.RIGHT])
+    policy = {state: max(actions, key=actions.get) for state, actions in Q.items()}
 
     plt.figure()
     plt.plot(reward_history)
