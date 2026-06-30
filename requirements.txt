@@ -1,0 +1,13 @@
+pygame 
+numpy 
+matplotlib 
+pillow 
+gymnasium 
+torch 
+tqdm
+tensorboard 
+pyyaml
+stable_baselines3 
+scipy 
+PyOpenGL
+PyOpenGL-accelerate
