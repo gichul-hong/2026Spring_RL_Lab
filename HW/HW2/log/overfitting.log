@@ -1,0 +1,37 @@
+(rl) C:\hong\2026Spring_RL_Lab\HW\HW2>python train_r.py --map hw_map1.yaml --episodes 200000
+C:\Users\삼성\.conda\envs\rl\Lib\site-packages\pygame\pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.13.14)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[REINFORCEAgent] Episode: 100, Reward: 62.00, SuccessRate: 98.0%
+[REINFORCEAgent] Episode: 200, Reward: 85.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 300, Reward: 51.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 400, Reward: 91.00, SuccessRate: 97.0%
+[REINFORCEAgent] Episode: 500, Reward: 83.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 600, Reward: 90.00, SuccessRate: 99.0%
+[REINFORCEAgent] Episode: 700, Reward: 82.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 800, Reward: 92.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 900, Reward: 91.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 1000, Reward: 86.00, SuccessRate: 85.0%
+[REINFORCEAgent] Episode: 1100, Reward: 91.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 1200, Reward: 93.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 1300, Reward: 94.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 1400, Reward: 94.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 1500, Reward: 81.00, SuccessRate: 99.0%
+[REINFORCEAgent] Episode: 1600, Reward: 89.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 1700, Reward: 89.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 1800, Reward: 88.00, SuccessRate: 96.0%
+[REINFORCEAgent] Episode: 1900, Reward: 91.00, SuccessRate: 94.0%
+[REINFORCEAgent] Episode: 2000, Reward: 86.00, SuccessRate: 99.0%
+[REINFORCEAgent] Episode: 2100, Reward: 94.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 2200, Reward: 94.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 2300, Reward: 94.00, SuccessRate: 99.0%
+[REINFORCEAgent] Episode: 2400, Reward: 92.00, SuccessRate: 100.0%
+[REINFORCEAgent] Episode: 2500, Reward: -150.00, SuccessRate: 40.0%
+[REINFORCEAgent] Episode: 2600, Reward: -150.00, SuccessRate: 20.0%
+[REINFORCEAgent] Episode: 2700, Reward: -150.00, SuccessRate: 27.0%
+[REINFORCEAgent] Episode: 2800, Reward: 93.00, SuccessRate: 30.0%
+[REINFORCEAgent] Episode: 2900, Reward: -150.00, SuccessRate: 44.0%
+[REINFORCEAgent] Episode: 3000, Reward: -150.00, SuccessRate: 51.0%
+[REINFORCEAgent] Episode: 3100, Reward: 91.00, SuccessRate: 68.0%
+[REINFORCEAgent] Episode: 3200, Reward: 89.00, SuccessRate: 76.0%
