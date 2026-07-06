@@ -114,35 +114,17 @@ def train(args):
     env = GridWorldEnv_c2(config_path, headless=not args.render)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
-    agent = REINFORCEAgent(
-        state_dim=state_dim, action_dim=action_dim,
-        total_episodes=args.episodes
-    )
+    agent = REINFORCEAgent(state_dim=state_dim, action_dim=action_dim)
     max_steps = resolve_max_steps(args.map, args.max_steps)
 
     # 2) 맵 이미지 기록
     map_img, H, W = log_map(writer, env)
-
-    # 성공률 이동 평균을 위한 버퍼
-    success_window = 100
-    recent_successes: list[bool] = []
-
-    # Best model 추적
-    best_success_rate = 0.0
-    os.makedirs('checkpoints', exist_ok=True)
-    best_path = f'checkpoints/{run_name}_best.pth'
-
-    # Early stopping: 성공률 >= threshold 가 patience 번 연속이면 종료
-    early_stop_threshold = 0.98
-    early_stop_patience = 10  # 100에피소드 주기 * 10 = 1000 에피소드 연속
-    early_stop_counter = 0
 
     # 3) 학습 루프
     for ep in range(1, args.episodes + 1):
         state = env.reset()
         agent.reset_episode()
         total_R = 0.0
-        done = False
 
         for t in range(max_steps):
             state_tensor = torch.tensor(state, dtype=torch.float32, device=agent.device)
@@ -161,54 +143,21 @@ def train(args):
             if done:
                 break
 
-        # GAE bootstrap 결정을 위해 done 플래그 전달
-        agent.set_done(done)
-
         # 에피소드 종료 시 정책 업데이트 및 로깅
         loss = agent.finish_episode()
         writer.add_scalar('Loss', loss, ep)
-        writer.add_scalar('Loss/Actor', agent.last_actor_loss, ep)
-        writer.add_scalar('Loss/Critic', agent.last_critic_loss, ep)
-        writer.add_scalar('Entropy', agent.last_entropy, ep)
         writer.add_scalar('Reward', total_R, ep)
-        writer.add_scalar('LearningRate', agent.get_lr(), ep)
-
-        # 성공률 이동 평균 계산 및 로깅
-        is_success = (total_R > 0)  # 목표 도달 시 reward 합 > 0
-        recent_successes.append(is_success)
-        if len(recent_successes) > success_window:
-            recent_successes.pop(0)
-        success_rate = sum(recent_successes) / len(recent_successes)
-        writer.add_scalar('SuccessRate', success_rate, ep)
-
-        # Best model 저장
-        if len(recent_successes) >= success_window and success_rate > best_success_rate:
-            best_success_rate = success_rate
-            agent.save(best_path)
 
         # 주기적 정책 시각화
         if ep % args.heatmap_interval == 0:
             plot_continuous_policy(writer, env, agent, map_img, H, W, args.resolution, ep)
 
         if ep % 100 == 0:
-            print(f"[REINFORCEAgent] Episode: {ep}, Reward: {total_R:.2f}, "
-                  f"SuccessRate: {success_rate:.1%}, LR: {agent.get_lr():.2e}")
+            print(f"[REINFORCEAgent] Episode: {ep}, Reward: {total_R:.2f}")
 
-            # Early stopping 체크 (100 에피소드마다)
-            if len(recent_successes) >= success_window and success_rate >= early_stop_threshold:
-                early_stop_counter += 1
-                if early_stop_counter >= early_stop_patience:
-                    print(f"\n[Early Stop] SuccessRate >= {early_stop_threshold:.0%} 가 "
-                          f"{early_stop_patience}번 연속 달성. 학습 종료.")
-                    break
-            else:
-                early_stop_counter = 0
-
-    # 4) 최종 모델 저장 및 종료
+    # 4) 모델 저장 및 종료
+    os.makedirs('checkpoints', exist_ok=True)
     agent.save(f'checkpoints/{run_name}.pth')
-    print(f"\n[저장 완료]")
-    print(f"  최종 모델: checkpoints/{run_name}.pth")
-    print(f"  최고 모델: {best_path} (SuccessRate: {best_success_rate:.1%})")
     writer.close()
     env.close()
 
