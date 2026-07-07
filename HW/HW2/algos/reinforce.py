@@ -152,6 +152,8 @@ class REINFORCEAgent:
         self._last_done = False
 
     def select_action(self, state: torch.Tensor, eval_mode: bool = False) -> torch.Tensor:
+        if not torch.is_grad_enabled():
+            eval_mode = True
         state = state.to(self.device).unsqueeze(0)
 
         norm_state = self.normalize_state(state, update=not eval_mode)
@@ -210,7 +212,7 @@ class REINFORCEAgent:
         return advantages, returns
 
     def finish_episode(self) -> float:
-        if len(self.rewards) == 0:
+        if len(self.rewards) == 0 or len(self.states) == 0:
             self.reset_episode()
             return 0.0
 

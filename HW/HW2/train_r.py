@@ -104,8 +104,14 @@ def train(args):
     action_dim = env.action_space.shape[0]
     agent = REINFORCEAgent(
         state_dim=state_dim, action_dim=action_dim,
+        lr=args.lr,
+        gamma=args.gamma,
+        log_std_init=args.log_std_init,
         total_episodes=max(args.episodes, 200000),
     )
+    if args.pretrained:
+        print(f"Loading pretrained model from {args.pretrained}")
+        agent.load(args.pretrained)
     max_steps = resolve_max_steps(args.map, args.max_steps)
 
     map_img, H, W = log_map(writer, env)
@@ -167,27 +173,35 @@ def train(args):
 
         is_eval_episode = False
 
-        if progress_ratio <= 0.4:
-            current_max_dist = 3.0 + (max_possible_dist - 3.0) * (progress_ratio / 0.4)
-            candidates = get_start_cells_by_max_distance(current_max_dist,
-                                                        exclude_trap_adj=True)
-
-            if not candidates:
-                candidates = [[0, 0]]
-
-            start_cell = candidates[np.random.choice(len(candidates))]
-            state = env.reset(start_pos=start_cell)
-        else:
+        if args.no_curriculum:
+            # Without curriculum, just start from (0,0) or do eval-like
             if np.random.rand() < 0.5:
                 is_eval_episode = True
                 state = env.reset()
             else:
-                candidates = get_start_cells_by_max_distance(max_possible_dist,
-                                                             exclude_trap_adj=False)
+                state = env.reset(start_pos=[0, 0])
+        else:
+            if progress_ratio <= 0.4:
+                current_max_dist = 3.0 + (max_possible_dist - 3.0) * (progress_ratio / 0.4)
+                candidates = get_start_cells_by_max_distance(current_max_dist,
+                                                            exclude_trap_adj=True)
+
                 if not candidates:
                     candidates = [[0, 0]]
+
                 start_cell = candidates[np.random.choice(len(candidates))]
                 state = env.reset(start_pos=start_cell)
+            else:
+                if np.random.rand() < 0.5:
+                    is_eval_episode = True
+                    state = env.reset()
+                else:
+                    candidates = get_start_cells_by_max_distance(max_possible_dist,
+                                                                 exclude_trap_adj=False)
+                    if not candidates:
+                        candidates = [[0, 0]]
+                    start_cell = candidates[np.random.choice(len(candidates))]
+                    state = env.reset(start_pos=start_cell)
 
         agent.reset_episode()
         total_R = 0.0
@@ -195,7 +209,11 @@ def train(args):
 
         for t in range(max_steps):
             state_tensor = torch.tensor(state, dtype=torch.float32, device=agent.device)
-            action_tensor = agent.select_action(state_tensor)
+            if is_eval_episode:
+                with torch.no_grad():
+                    action_tensor = agent.select_action(state_tensor, eval_mode=True)
+            else:
+                action_tensor = agent.select_action(state_tensor)
             action = action_tensor.detach().cpu().numpy()
 
             next_state, reward, done, _ = env.step(action)
@@ -245,7 +263,10 @@ def train(args):
 
         if ep % 100 == 0:
             current_sr = sum(recent_successes) / len(recent_successes) if recent_successes else 0.0
-            phase_str = "Mixed Phase" if progress_ratio > 0.4 else "Curriculum Phase"
+            if args.no_curriculum:
+                phase_str = "No Curriculum"
+            else:
+                phase_str = "Mixed Phase" if progress_ratio > 0.4 else "Curriculum Phase"
             print(f"[REINFORCEAgent] Episode: {ep}, Reward: {total_R:.2f}, "
                   f"Eval SuccessRate: {current_sr:.1%}, LR: {agent.get_lr():.2e} ({phase_str})")
 
@@ -269,6 +290,11 @@ def main():
     p.add_argument('--logdir', type=str, default='runs')
     p.add_argument('--heatmap-interval', type=int, default=500)
     p.add_argument('--resolution', type=float, default=0.1)
+    p.add_argument('--pretrained', type=str, default=None, help='Path to pretrained checkpoint')
+    p.add_argument('--no-curriculum', action='store_true', help='Disable curriculum learning')
+    p.add_argument('--lr', type=float, default=3e-4)
+    p.add_argument('--gamma', type=float, default=0.98)
+    p.add_argument('--log-std-init', type=float, default=0.5)
     args = p.parse_args()
     train(args)
 

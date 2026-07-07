@@ -12,9 +12,9 @@
 |---------|-----------|-------------|----------------------------------------------------------------|
 | hw_map1 | ✅        | **100%** (10/10) | `checkpoints/reinforce_hw_map1.pth`, `_best.pth`         |
 | hw_map2 | ✅        | **100%** (10/10) | `checkpoints/reinforce_hw_map2.pth`, `_best.pth`         |
-| hw_map3 | ❌ (미해결)| 미평가       | `checkpoints/reinforce_hw_map3_best.pth` (수렴 실패)     |
+| hw_map3 | ✅        | **100%** (10/10) | `checkpoints/reinforce_hw_map3.pth`, `_best.pth`         |
 
-**map1, map2는 완전히 해결되었고, map3만 남은 상태다.**
+**map1, map2, map3 모두 해결되었습니다.**
 
 ## 파일 구조 및 변경 사항
 
@@ -84,10 +84,14 @@ $py = "C:\Users\삼성\.conda\envs\rl\python.exe"
 - Episode 3000에서 SuccessRate 97%로 종료 (early stop 조건 미달)
 - **평가 10/10 = 100%** ✅
 
-### map3 (10000 episodes 시도 → 실패)
-- **문제**: Curriculum Phase에서 성공(100)과 실패(-250)가 반복되고 절대 안정화되지 않음
-- 여러 하이퍼파라미터 조정 시도했지만 모두 실패
-- Best model은 저장되었지만 신뢰 X (평가 실행 안 함)
+### map3 (1500 episodes 성공!)
+- **해결 방안 적용**:
+  1. **Transfer Learning**: `map2`의 최고 가중치를 불러와 학습 (`--pretrained`)
+  2. **No Curriculum**: 커리큘럼 없이 곧바로 (0,0)에서 시작 (`--no-curriculum`)
+  3. **Deterministic Evaluation Fix**: 훈련 도중의 성능 평가 시 무작위성을 제거(`eval_mode=True`)하여 정확한 조기 종료 달성
+  4. **Hyperparameter Tuning**: `lr=1e-4`, `gamma=0.99`로 페널티 민감도와 장기 보상 조정
+- **결과**: 에피소드 1500에서 성공률 100%를 달성하여 조기 종료!
+- **평가 10/10 = 100%** ✅
 
 ## map3에서 시도한 것들 (모두 실패)
 
