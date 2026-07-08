@@ -109,8 +109,6 @@ def train(args):
         log_std_init=args.log_std_init,
         total_episodes=max(args.episodes, 200000),
         clip_epsilon=args.clip_epsilon,
-        ppo_epochs=args.ppo_epochs,
-        batch_size=args.batch_size,
     )
     if args.pretrained:
         print(f"Loading pretrained model from {args.pretrained}")
@@ -183,25 +181,18 @@ def train(args):
                 state = env.reset(start_pos=[0, 0])
         else:
             if progress_ratio <= 0.4:
-                r = np.random.rand()
-                if r < 0.15:
-                    state = env.reset()
-                else:
-                    current_max_dist = 3.0 + (max_possible_dist - 3.0) * (progress_ratio / 0.4)
-                    candidates = get_start_cells_by_max_distance(current_max_dist,
-                                                                exclude_trap_adj=True)
+                current_max_dist = 3.0 + (max_possible_dist - 3.0) * (progress_ratio / 0.4)
+                candidates = get_start_cells_by_max_distance(current_max_dist,
+                                                            exclude_trap_adj=True)
 
-                    if not candidates:
-                        candidates = [[0, 0]]
+                if not candidates:
+                    candidates = [[0, 0]]
 
-                    start_cell = candidates[np.random.choice(len(candidates))]
-                    state = env.reset(start_pos=start_cell)
+                start_cell = candidates[np.random.choice(len(candidates))]
+                state = env.reset(start_pos=start_cell)
             else:
-                r = np.random.rand()
-                if r < 0.4:
+                if np.random.rand() < 0.5:
                     is_eval_episode = True
-                    state = env.reset()
-                elif r < 0.8:
                     state = env.reset()
                 else:
                     candidates = get_start_cells_by_max_distance(max_possible_dist,
@@ -298,14 +289,12 @@ def main():
     p.add_argument('--logdir', type=str, default='runs')
     p.add_argument('--heatmap-interval', type=int, default=500)
     p.add_argument('--resolution', type=float, default=0.1)
-    p.add_argument('--pretrained', type=str, default=None, help='Path to pretrained checkpoint')
-    p.add_argument('--no-curriculum', action='store_true', help='Disable curriculum learning')
+    p.add_argument('--pretrained', type=str, default=None)
+    p.add_argument('--no-curriculum', action='store_true')
     p.add_argument('--lr', type=float, default=3e-4)
     p.add_argument('--gamma', type=float, default=0.98)
     p.add_argument('--log-std-init', type=float, default=0.5)
     p.add_argument('--clip-epsilon', type=float, default=0.2)
-    p.add_argument('--ppo-epochs', type=int, default=5)
-    p.add_argument('--batch-size', type=int, default=32)
     args = p.parse_args()
     train(args)
 

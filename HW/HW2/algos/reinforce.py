@@ -83,10 +83,9 @@ class REINFORCEAgent:
         gamma: float = 0.98,
         gae_lambda: float = 0.95,
         clip_epsilon: float = 0.2,
-        ppo_epochs: int = 5,
-        batch_size: int = 32,
-        entropy_coeff_start: float = 0.05,
-        entropy_coeff_end: float = 0.001,
+        reward_scale: float = 0.01,
+        entropy_coeff_start: float = 0.1,
+        entropy_coeff_end: float = 0.01,
         value_loss_coeff: float = 0.5,
         max_grad_norm: float = 0.5,
         log_std_init: float = 0.5,
@@ -97,8 +96,7 @@ class REINFORCEAgent:
         self.gamma = gamma
         self.gae_lambda = gae_lambda
         self.clip_epsilon = clip_epsilon
-        self.ppo_epochs = ppo_epochs
-        self.batch_size = batch_size
+        self.reward_scale = reward_scale
         self.entropy_coeff_start = entropy_coeff_start
         self.entropy_coeff_end = entropy_coeff_end
         self.entropy_coeff = entropy_coeff_start
@@ -178,7 +176,6 @@ class REINFORCEAgent:
 
         log_prob = dist.log_prob(action).sum(dim=-1)
         self.log_probs.append(log_prob.detach())
-
         self.actions.append(action.detach().squeeze(0))
 
         action = torch.clamp(action, -1.0, 1.0)
@@ -202,6 +199,7 @@ class REINFORCEAgent:
 
         values_tensor = torch.stack(self.values)
         rewards_tensor = torch.tensor(self.rewards, dtype=torch.float32, device=self.device)
+        rewards_tensor = rewards_tensor * self.reward_scale
 
         for t in reversed(range(T)):
             if t == T - 1:
@@ -223,71 +221,41 @@ class REINFORCEAgent:
 
         advantages, returns = self._compute_gae()
 
-        states = torch.stack(self.states)
-        actions = torch.stack(self.actions)
-        old_log_probs = torch.stack(self.log_probs)
-        old_values = torch.stack(self.values)
-
         if len(advantages) > 1:
             advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        n_samples = len(states)
-        effective_batch = min(self.batch_size, n_samples)
-        total_actor_loss = 0.0
-        total_critic_loss = 0.0
-        total_entropy = 0.0
-        n_updates = 0
+        states = torch.stack(self.states)
+        actions = torch.stack(self.actions)
+        old_log_probs = torch.stack(self.log_probs)
 
-        for _epoch in range(self.ppo_epochs):
-            indices = torch.randperm(n_samples)
-            for start in range(0, n_samples, effective_batch):
-                batch_idx = indices[start:start + effective_batch]
+        mean, std = self.policy(states)
+        dist = Normal(mean, std)
 
-                batch_states = states[batch_idx]
-                batch_actions = actions[batch_idx]
-                batch_old_log_probs = old_log_probs[batch_idx]
-                batch_advantages = advantages[batch_idx]
-                batch_returns = returns[batch_idx]
-                batch_old_values = old_values[batch_idx]
+        new_log_probs = dist.log_prob(actions).sum(dim=-1)
+        ratio = torch.exp(new_log_probs - old_log_probs)
 
-                mean, std = self.policy(batch_states)
-                dist = Normal(mean, std)
+        surr1 = ratio * advantages
+        surr2 = torch.clamp(ratio, 1.0 - self.clip_epsilon, 1.0 + self.clip_epsilon) * advantages
+        actor_loss = -torch.min(surr1, surr2).mean()
 
-                new_log_probs = dist.log_prob(batch_actions).sum(dim=-1)
-                ratio = torch.exp(new_log_probs - batch_old_log_probs)
+        values_pred = self.value_net(states).squeeze(-1)
+        critic_loss = nn.functional.mse_loss(values_pred, returns.detach())
 
-                surr1 = ratio * batch_advantages
-                surr2 = torch.clamp(ratio, 1.0 - self.clip_epsilon, 1.0 + self.clip_epsilon) * batch_advantages
-                actor_loss = -torch.min(surr1, surr2).mean()
+        entropy = dist.entropy().sum(dim=-1).mean()
 
-                new_values = self.value_net(batch_states).squeeze(-1)
-                value_pred_clipped = batch_old_values + torch.clamp(
-                    new_values - batch_old_values, -self.clip_epsilon, self.clip_epsilon
-                )
-                value_loss_unclipped = (new_values - batch_returns).pow(2)
-                value_loss_clipped = (value_pred_clipped - batch_returns).pow(2)
-                critic_loss = 0.5 * torch.max(value_loss_unclipped, value_loss_clipped).mean()
+        total_loss = actor_loss + self.value_loss_coeff * critic_loss - self.entropy_coeff * entropy
 
-                entropy = dist.entropy().sum(dim=-1).mean()
+        self.optimizer.zero_grad()
+        total_loss.backward()
+        nn.utils.clip_grad_norm_(
+            list(self.policy.parameters()) + list(self.value_net.parameters()),
+            self.max_grad_norm,
+        )
+        self.optimizer.step()
 
-                total_loss = actor_loss + self.value_loss_coeff * critic_loss - self.entropy_coeff * entropy
-
-                self.optimizer.zero_grad()
-                total_loss.backward()
-                nn.utils.clip_grad_norm_(
-                    list(self.policy.parameters()) + list(self.value_net.parameters()),
-                    self.max_grad_norm,
-                )
-                self.optimizer.step()
-
-                total_actor_loss += actor_loss.item()
-                total_critic_loss += critic_loss.item()
-                total_entropy += entropy.item()
-                n_updates += 1
-
-        self.last_actor_loss = total_actor_loss / max(n_updates, 1)
-        self.last_critic_loss = total_critic_loss / max(n_updates, 1)
-        self.last_entropy = total_entropy / max(n_updates, 1)
+        self.last_actor_loss = actor_loss.item()
+        self.last_critic_loss = critic_loss.item()
+        self.last_entropy = entropy.item()
 
         self.scheduler.step()
         self._episode_count += 1
@@ -295,7 +263,7 @@ class REINFORCEAgent:
 
         self.reset_episode()
 
-        return self.last_actor_loss + self.last_critic_loss
+        return total_loss.item()
 
     def get_lr(self) -> float:
         return self.optimizer.param_groups[0]['lr']
