@@ -9,4 +9,3 @@ lab_env/
 lab_env.backup-*/
 runs/
 Lab*/runs/
-Lab*/checkpoints/*.pth
