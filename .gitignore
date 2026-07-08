@@ -3,7 +3,6 @@
 __pycache__/
 *.pyc
 *.pkl
-*.pth
 lab_env/
 .tools/
 lab_env.backup-*/
