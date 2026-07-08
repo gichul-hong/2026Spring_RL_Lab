@@ -107,6 +107,8 @@ def train(args):
         lr=args.lr,
         gamma=args.gamma,
         log_std_init=args.log_std_init,
+        entropy_coeff_start=args.entropy_start,
+        entropy_coeff_end=args.entropy_end,
         total_episodes=max(args.episodes, 200000),
     )
     if args.pretrained:
@@ -295,6 +297,8 @@ def main():
     p.add_argument('--lr', type=float, default=3e-4)
     p.add_argument('--gamma', type=float, default=0.98)
     p.add_argument('--log-std-init', type=float, default=0.5)
+    p.add_argument('--entropy-start', type=float, default=0.1)
+    p.add_argument('--entropy-end', type=float, default=0.01)
     args = p.parse_args()
     train(args)
 
